@@ -25,16 +25,18 @@ def get_playlist(playlist_url):
 
 
 def save_file(file_links, out_path, out_file):
+    try: 
+        os.remove(out_path+out_file)
+    except (FileExistsError, FileNotFoundError) as error:
+        print(error)
     for file_link in file_links:
-        try:
-            with open(out_path+out_file, 'ab') as file:
-                file_request = requests.get(file_link, stream=True)
-                for chunk in file_request.iter_content(chunk_size=1024):
-                    file.write(chunk)
-                print(file_link, file_request.status_code, file.__sizeof__)
-        except (FileExistsError, FileNotFoundError) as error:
-            print(error)
-
+        with open(out_path+out_file, 'ab') as file:
+            file_request = requests.get(file_link, stream=True)
+            print(f'{file_link} {file_request}  {len(file_request.content)//1024} kB  {file.tell()//(1024**2)} MB')
+            # for chunk in file_request.iter_content(chunk_size=1024):
+            #     file.write(chunk)
+            file.write(file_request.content)
+    
 
 if __name__ == '__main__':
     # Load environment variables from .env file to memory
@@ -44,9 +46,5 @@ if __name__ == '__main__':
     # Make output directory
     make_directory(os.getenv('OUTPUT_PATH'))
 
-    result = get_playlist(os.getenv('PLAYLIST_URL'))
-    save_file(result, os.getenv('OUTPUT_PATH'), os.getenv('OUTPUT_FILENAME'))
-
-    # Make output directory
-
-    # posts_list = get_posts_list(get_page_soup(cfg['COMMON']['site_url'], cfg['CRIMSON']['feed_urn'], session))
+    playlist = get_playlist(os.getenv('PLAYLIST_URL'))
+    save_file(playlist, os.getenv('OUTPUT_PATH'), os.getenv('OUTPUT_FILENAME'))
