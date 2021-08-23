@@ -25,17 +25,17 @@ def get_playlist(playlist_url):
 
 def save_file(file_links, out_file):
     try: 
-        os.remove(out_file)
-        print(out_file, 'removed')
+        with open(out_file, 'wb') as file:
+            for file_link in tqdm(
+            file_links, 
+            unit=' files', 
+            desc=out_file, 
+            miniters=1, 
+            colour='#ee1a80'):
+                file_request = requests.get(file_link, stream=True)
+                file.write(file_request.content)
     except (FileExistsError, FileNotFoundError) as error:
         print(error)
-    for file_link in tqdm(file_links, unit='files', colour='#ee1a80'):
-        with open(out_file, 'ab') as file:
-            file_request = requests.get(file_link, stream=True)
-            # print(f'{file_request} {file_link[-16:]}: {len(file_request.content)//1024} kB --> {file.name}: {file.tell()//(1024**2)} MB')
-            # for chunk in file_request.iter_content(chunk_size=1024):
-            #     file.write(chunk)
-            file.write(file_request.content)
 
 def multi_save_file(links_lists, out_files_list):
     with ThreadPoolExecutor(2) as executor:
