@@ -4,8 +4,10 @@
 import os
 import re
 import requests
-from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor
+from dotenv import load_dotenv
+from tqdm import tqdm
+
 
 def make_directory(directory_name):
     try:
@@ -24,12 +26,13 @@ def get_playlist(playlist_url):
 def save_file(file_links, out_file):
     try: 
         os.remove(out_file)
+        print(out_file, 'removed')
     except (FileExistsError, FileNotFoundError) as error:
         print(error)
-    for file_link in file_links:
+    for file_link in tqdm(file_links, unit='files', colour='#ee1a80'):
         with open(out_file, 'ab') as file:
             file_request = requests.get(file_link, stream=True)
-            print(f'{file_request} {file_link[-16:]}: {len(file_request.content)//1024} kB --> {file.name}: {file.tell()//(1024**2)} MB')
+            # print(f'{file_request} {file_link[-16:]}: {len(file_request.content)//1024} kB --> {file.name}: {file.tell()//(1024**2)} MB')
             # for chunk in file_request.iter_content(chunk_size=1024):
             #     file.write(chunk)
             file.write(file_request.content)
