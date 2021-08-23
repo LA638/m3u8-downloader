@@ -34,6 +34,7 @@ def save_file(file_links, out_file):
             colour='#ee1a80'):
                 file_request = requests.get(file_link, stream=True)
                 file.write(file_request.content)
+                file.flush()
     except (FileExistsError, FileNotFoundError) as error:
         print(error)
 
