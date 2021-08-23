@@ -30,7 +30,8 @@ def save_file(file_links, out_file):
             file_links, 
             unit=' files', 
             desc=out_file, 
-            miniters=1, 
+            miniters=1,
+            leave=False,
             colour='#ee1a80'):
                 file_request = requests.get(file_link, stream=True)
                 file.write(file_request.content)
@@ -58,7 +59,7 @@ if __name__ == '__main__':
     output_video_file = os.getenv('M3U8_OUTPUT_VIDEOFILE')
     output_audio_file = os.getenv('M3U8_OUTPUT_AUDIOFILE')
     output_file = os.getenv('M3U8_OUTPUT_FILE')
-    print(video_playlist_url, audio_playlist_url, output_path, output_file, output_video_file, output_audio_file, sep='\n')
+    print(video_playlist_url, audio_playlist_url, output_file, sep='\n')
     # Make output directory
     make_directory(output_path)
 
