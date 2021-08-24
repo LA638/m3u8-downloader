@@ -31,7 +31,6 @@ def save_file(file_links, out_file):
             unit=' files', 
             desc=out_file, 
             miniters=1,
-            leave=False,
             colour='#ee1a80'):
                 file_request = requests.get(file_link, stream=True)
                 file.write(file_request.content)
