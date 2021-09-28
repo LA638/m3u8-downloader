@@ -5,7 +5,6 @@ import os
 import re
 import requests
 from concurrent.futures import ThreadPoolExecutor
-from dotenv import load_dotenv
 from tqdm import tqdm
 
 
@@ -15,21 +14,22 @@ def make_directory(directory_name):
     except (FileExistsError, FileNotFoundError) as error:
         print(error)
 
-def get_playlist(playlist_url):
-    file_list = re.findall('^[^#].+', requests.get(playlist_url).text, flags=re.MULTILINE)
-    file_url = re.search('.+\/(?=.+$)', playlist_url)[0]
+def get_playlist(playlist_url, output_path):
+    out_file = output_path+playlist_url[0]
+    file_list = re.findall('^[^#].+', requests.get(playlist_url[1]).text, flags=re.MULTILINE)
+    file_url = re.search('.+\/(?=.+$)', playlist_url[1])[0]
     file_links = []
     for file in file_list:
         file_links.append(file_url+file)
-    return file_links
+    return out_file, file_links
 
-def save_file(file_links, out_file):
+def save_file(playlist):
     try: 
-        with open(out_file, 'wb') as file:
+        with open(playlist[0], 'wb') as file:
             for file_link in tqdm(
-            file_links, 
+            playlist[1], 
             unit=' files', 
-            desc=out_file, 
+            desc=playlist[0], 
             miniters=1,
             colour='#ee1a80'):
                 file_request = requests.get(file_link, stream=True)
@@ -38,34 +38,41 @@ def save_file(file_links, out_file):
     except (FileExistsError, FileNotFoundError) as error:
         print(error)
 
-def multi_save_file(links_lists, out_files_list):
-    with ThreadPoolExecutor(2) as executor:
-        executor.map(save_file, links_lists, out_files_list)
+def multi_save_file(playlists):
+    with ThreadPoolExecutor(6) as executor:
+        executor.map(save_file, playlists)
 
-def convert_file(audio_file, video_file, output_file):
+def convert_file(file):
     # Ffmpeg video and audio streams to file
-    command = f'ffmpeg -i {video_file} -i {audio_file} -map 0:V:0 -map 1:a:0 -c copy -f mp4 -movflags +faststart {output_file}'
+    command = f'ffmpeg -hide_banner -loglevel warning -y -i {file[1][0]} -i {file[1][1]} -map 0:V:0 -map 1:a:0 -c copy -f mp4 -movflags +faststart {file[0]}'
     print(command)
-    print(os.popen(command).read())
+    os.popen(command).read()
+
+def multi_convert_file(files):
+    with ThreadPoolExecutor(3) as executor:
+        executor.map(convert_file, files)
 
 
 if __name__ == '__main__':
-    # Load environment variables from .env file
-    load_dotenv()
-    video_playlist_url = os.getenv('M3U8_VIDEO_PLAYLIST_URL')
-    audio_playlist_url = os.getenv('M3U8_AUDIO_PLAYLIST_URL')
-    output_path = os.getenv('M3U8_OUTPUT_PATH')
-    output_video_file = os.getenv('M3U8_OUTPUT_VIDEOFILE')
-    output_audio_file = os.getenv('M3U8_OUTPUT_AUDIOFILE')
-    output_file = os.getenv('M3U8_OUTPUT_FILE')
-    print(video_playlist_url, audio_playlist_url, output_file, sep='\n')
-    # Make output directory
+    output_path = '/mnt/c/out/'
     make_directory(output_path)
 
-    if audio_playlist_url:
-        links = [get_playlist(audio_playlist_url), get_playlist(video_playlist_url)]
-        out_files = [output_path+output_audio_file, output_path+output_video_file]
-        multi_save_file(links, out_files)
-        convert_file(out_files[0], out_files[1], output_path+output_file)
-    else: 
-        save_file(get_playlist(video_playlist_url), output_path+output_file)
+    urls = {
+    'qual_video.ts':'https://cdn-2.facecast.net/public/69363/720p.m3u8',
+    'qual_audio.aac':'https://cdn-2.facecast.net/public/69363/Audio0.m3u8',
+
+    'top32_video.ts':'https://e10-fd.facecast.net/secure/cH2zJKGPnNRwsPollGxCSg/tv4aNB96BOpFyQ4Or3lLRw/1632909804/11006638/69393/720p.m3u8',
+    'top32_audio.aac':'https://e10-fd.facecast.net/secure/cH2zJKGPnNRwsPollGxCSg/tv4aNB96BOpFyQ4Or3lLRw/1632909804/11006638/69393/Audio0.m3u8',
+    
+    'final_video.ts':'https://cdn-1.facecast.net/secure/-GivtdLk5kEwjUVA_pHR4w/tv4aNB96BOpFyQ4Or3lLRw/1632909874/11006642/69364/720p.m3u8',
+    'final_audio.aac':'https://cdn-1.facecast.net/secure/-GivtdLk5kEwjUVA_pHR4w/tv4aNB96BOpFyQ4Or3lLRw/1632909874/11006642/69364/Audio0.m3u8'
+    }
+    playlists = [get_playlist(url, output_path) for url in urls.items()]
+    multi_save_file(playlists)
+
+    files = [
+        ('/mnt/c/out/qual_2021E6.mp4', ['/mnt/c/out/qual_video.ts','/mnt/c/out/qual_audio.aac']),
+        ('/mnt/c/out/top32_2021E6.mp4', ['/mnt/c/out/top32_video.ts','/mnt/c/out/top32_audio.aac']),
+        ('/mnt/c/out/final_2021E6.mp4', ['/mnt/c/out/final_video.ts','/mnt/c/out/final_audio.aac'])
+    ]
+    multi_convert_file(files)
